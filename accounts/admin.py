@@ -6,8 +6,11 @@ from .models import Account
 
 class AccountAdmin(UserAdmin):
     list_display = ['username', 'email', 'is_active', 'first_name']
-    readonly_fields = ['password']
+    readonly_fields = ['password', 'last_login',]
+    list_display_links = ['username', 'email']  # For creating hyperlink
+    ordering = ('-date_joined',)
 
+    # because we made custom usermodel we need to use this
     filter_horizontal = ()
     list_filter = ()
     fieldsets = ()
