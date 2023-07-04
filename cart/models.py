@@ -4,7 +4,7 @@ from store.models import Product
 
 
 class Cart(models.Model):
-    cart_id = models.CharField(max_length=50, blank=True)
+    cart_id = models.CharField(max_length=50, blank=True)  # session_id=Cart_id
     date_added = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -18,4 +18,7 @@ class CartItem(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.product
+        return self.product.product_name
+
+    def sub_total(self):
+        return self.quantity * self.product.price
