@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-
+from django.core.exceptions import ObjectDoesNotExist
 from .models import Cart, CartItem
 from store.models import Product
 # Create your views here.
@@ -69,7 +69,7 @@ def cart(request, total_amount=0, quantity=0, cart_items=None, tax=0, grand_tota
             quantity += cart_item.quantity
         tax = (12*total_amount)/100
         grand_total = tax+total_amount
-    except Exception:
+    except ObjectDoesNotExist:
         pass
     context = {'total_amount': float(total_amount), 'tax': tax, 'grand_total': grand_total,
                'quantity': quantity, 'cart_items': cart_items}
