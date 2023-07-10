@@ -26,6 +26,7 @@ from .views import *
 
 urlpatterns = [
     path('', home, name='home'),
+    path('accounts/', include('accounts.urls')),
     path('store/', include('store.urls')),
     path('cart/', include('cart.urls')),
     path('admin/', admin.site.urls),
