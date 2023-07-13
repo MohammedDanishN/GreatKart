@@ -1,0 +1,15 @@
+{% autoescape off %}
+
+Hi {{user.first_name}}
+
+Verify your email address
+
+To continue setting up your GreatKart account,please verify that this is your email address</p>
+
+http://{{domain}}{% url 'activate' uidb64=uid token=token %}
+
+Link is only valid of first time. If you did not make this request, please disregard this email.
+
+
+
+{% endautoescape %}
