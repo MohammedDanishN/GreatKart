@@ -84,11 +84,78 @@ def activate(request, uidb64, token):
     except:
         user = None
 
-    if user is not None:
+    if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
         messages.success(request, "Verification Successfull")
         return redirect('login')
     else:
         messages.error(request, 'Invalid Acitvation link')
-    return HttpResponse("yes")
+    return redirect('register')
+
+
+@login_required(login_url='login')
+def dashboard(request):
+    return render(request, 'accounts/dashboard.html')
+
+
+def forgotpassword(request):
+    if request.method == 'POST':
+        email = request.POST['email']
+        if Account.objects.filter(email=email).exists():
+            user = Account.objects.get(email__exact=email)
+            current_site = get_current_site(request)
+            mail_subject = "GreatKar - Password reset conformation"
+            message = render_to_string('accounts/reset_password_mail.html', {
+                'user': user,
+                'domain': current_site,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+            })
+            from_mail = settings.EMAIL_HOST_USER
+            to_email = [email]
+            send_mail(mail_subject, message, from_mail, to_email)
+            return redirect('/accounts/forgotpassword/?cmd=verification&email='+email)
+            messages.success(
+                request, 'Password reset mail have been sent to '+email)
+            return redirect('login')
+        else:
+            messages.error(request, "Account does not exist")
+            return redirect("forgotpassword")
+
+    return render(request, 'accounts/forgotpassword.html')
+
+
+def password_reset_validation(request, uidb64, token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = Account._default_manager.get(pk=uid)
+    except:
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        request.session['uid'] = uid
+        messages.info(request, "Please reset your password")
+        return redirect('reset_password')
+    else:
+        messages.error(request, 'Password reset link expired')
+    return redirect("login")
+
+
+def reset_password(request):
+    if request.method == "POST":
+        password = request.POST['password']
+        confirm_password = request.POST['confirm_password']
+
+        if confirm_password != password:
+            messages.error(request, "Password does not match")
+            return redirect('reset_password')
+        else:
+            uid = request.session.get('uid')
+            user = Account.objects.get(pk=uid)
+            user.set_password(password)
+            user.save()
+            messages.success(request, "Password reset successfull")
+            return redirect('login')
+    else:
+        return render(request, 'accounts/password_reset.html')
