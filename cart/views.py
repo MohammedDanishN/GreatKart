@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
 
 from .models import Cart, CartItem
@@ -100,6 +101,23 @@ def delete_cart_item(request, product_id, cart_item_id):
         cart=cart, product=product, id=cart_item_id)
     cart_item.delete()
     return redirect('cart')
+
+
+@login_required(login_url='login')
+def checkout(request, total_amount=0, quantity=0, cart_items=None, tax=0, grand_total=0):
+    try:
+        cart = Cart.objects.get(cart_id=_cart_id(request))
+        cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+        for cart_item in cart_items:
+            total_amount += (cart_item.product.price * cart_item.quantity)
+            quantity += cart_item.quantity
+        tax = (12*total_amount)/100
+        grand_total = tax+total_amount
+    except Exception as E:
+        print(E)
+    context = {'total_amount': float(total_amount), 'tax': tax, 'grand_total': grand_total,
+               'quantity': quantity, 'cart_items': cart_items}
+    return render(request, 'cart/checkout.html', context)
 
 
 def cart(request, total_amount=0, quantity=0, cart_items=None, tax=0, grand_total=0):
