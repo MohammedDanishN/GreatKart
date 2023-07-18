@@ -50,7 +50,7 @@ class Order(models.Model):
     update_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.first_name
+        return self.order_number
 
     def full_name(self):
         return f'{self.first_name } {self.last_name}'
