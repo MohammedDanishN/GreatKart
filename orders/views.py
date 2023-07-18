@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 import datetime
+import razorpay
 
-from .models import Order
+from .models import Order, Payment, OrderProduct
 from cart.models import Cart, CartItem
 from cart.views import _cart_id
 from .forms import OrderForm
@@ -10,7 +11,33 @@ from .forms import OrderForm
 # Create your views here.
 
 
+def payment_success(request):
+    try:
+        razorpay_payment_id = request.GET.get('razorpay_payment_id')
+        razorpay_order_id = request.GET.get('razorpay_order_id')
+        razorpay_signature = request.GET.get('razorpay_signature')
+        print(razorpay_payment_id + razorpay_order_id + razorpay_signature)
+        order = Order.objects.get(
+            user=request.user, is_ordered=False, order_number=razorpay_order_id)
+        # storing payment details in payment models
+        payment = Payment.objects.create(user=request.user, razorpay_order_id=razorpay_order_id,
+                                         payment_id=razorpay_payment_id, payment_method='UPI', amount_paid=order.order_total, status='PAID')
+        order.payment = payment
+        order.is_ordered = True
+        order.save()
+    except:
+        return HttpResponse("none")
+    return HttpResponse("payment successfull")
+
+
 def payment(request):
+    client = razorpay.Client(
+        auth=("rzp_test_yI4UspJjzX8pTz", "fiRvusdM5wlbKXQDY6zO5Qa6"))
+    paymant = client.order.create(
+        {'amount': 1000, 'currency': 'INR', 'payment_capture': 1})
+    print(paymant)
+
+    return HttpResponse("done")
     return render(request, 'orders/payment.html')
 
 
@@ -51,23 +78,31 @@ def place_order(request):
             data.ip = request.META.get('REMOTE_ADDR')
             data.save()
             # Generate order number
-            yr = int(datetime.date.today().strftime('%Y'))
-            dt = int(datetime.date.today().strftime('%d'))
-            mt = int(datetime.date.today().strftime('%m'))
-            d = datetime.date(yr, mt, dt)
-            current_date = d.strftime("%Y%m%d")  # 20210305
-            order_number = current_date + str(data.id)
+            # yr = int(datetime.date.today().strftime('%Y'))
+            # dt = int(datetime.date.today().strftime('%d'))
+            # mt = int(datetime.date.today().strftime('%m'))
+            # d = datetime.date(yr, mt, dt)
+            # current_date = d.strftime("%Y%m%d")  # 20210305
+            # order_number = current_date + str(data.id)
+            client = razorpay.Client(
+                auth=("rzp_test_JS9oedZq6XE4mW", "0YPgECxjeZzRo3JL9hofXqUh"))
+            payment_detail = {"amount": grand_total*100, "currency": "INR"}
+            payment = client.order.create(data=payment_detail)
+            order_number = payment['id']
             data.order_number = order_number
+            print(payment)
             data.save()
 
             order = Order.objects.get(
                 user=current_user, is_ordered=False, order_number=order_number)
+
             context = {
                 'order': order,
                 'cart_items': cart_items,
                 'total_amount': total_amount,
                 'tax': tax,
                 'grand_total': grand_total,
+                'payment': payment
             }
             return render(request, 'orders/payment.html', context)
     else:

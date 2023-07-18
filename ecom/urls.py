@@ -24,8 +24,24 @@ from django.conf.urls.static import static
 from .views import *
 
 
+###########
+# import razorpay
+
+
+# def test(request):
+#     payment = None
+#     if request.method == "POST":
+#         client = razorpay.Client(
+#             auth=("rzp_test_JS9oedZq6XE4mW", "0YPgECxjeZzRo3JL9hofXqUh"))
+#         data = {"amount": 50000, "currency": "INR"}
+#         payment = client.order.create(data=data)
+#         print(payment)
+#     return render(request, 'tezt.html', {'payment': payment})
+
+
 urlpatterns = [
     path('', home, name='home'),
+    # path('test/', test),
     path('accounts/', include('accounts.urls')),
     path('cart/', include('cart.urls')),
     path('orders/', include('orders.urls')),

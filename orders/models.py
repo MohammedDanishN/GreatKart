@@ -8,10 +8,11 @@ from store.models import Product, Variation
 
 class Payment(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
-    payment_id = models.CharField(max_length=50)
-    payment_method = models.CharField(max_length=50)
+    razorpay_order_id = models.CharField(max_length=100)
+    payment_id = models.CharField(max_length=100)
+    payment_method = models.CharField(max_length=100)
     amount_paid = models.CharField(max_length=50)
-    status = models.CharField(max_length=50)
+    status = models.CharField(max_length=100)
     create_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
