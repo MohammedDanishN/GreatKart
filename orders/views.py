@@ -13,27 +13,22 @@ from .forms import OrderForm
 
 
 def payment_success(request):
+    razorpay_payment_id = request.GET.get('razorpay_payment_id')
+    razorpay_order_id = request.GET.get('razorpay_order_id')
+    razorpay_signature = request.GET.get('razorpay_signature')
     try:
-        razorpay_payment_id = request.GET.get('razorpay_payment_id')
-        razorpay_order_id = request.GET.get('razorpay_order_id')
-        razorpay_signature = request.GET.get('razorpay_signature')
-        print("*****************************")
-        print(razorpay_payment_id + razorpay_order_id + razorpay_signature)
         order = Order.objects.get(
             user=request.user, is_ordered=False, order_number=razorpay_order_id)
-        print("order done")
         # storing payment details in payment models
         payment = Payment.objects.create(user=request.user, razorpay_order_id=razorpay_order_id,
                                          payment_id=razorpay_payment_id, payment_method='UPI', amount_paid=order.order_total, status='PAID')
-        print("Payment done")
         order.payment = payment
         order.is_ordered = True
         order.save()
 
+        # Moveing the cartItem to OrderedItem
         cart = Cart.objects.get(cart_id=_cart_id(request))
-        print("cart done")
         cart_items = CartItem.objects.filter(cart=cart, is_active=True)
-        print(cart_items)
         for item in cart_items:
             orderproduct = OrderProduct()
             orderproduct.order_id = order.id
@@ -46,11 +41,8 @@ def payment_success(request):
             orderproduct.save()
 
             cart_item = CartItem.objects.get(id=item.id)
-            print("got cart_item")
             product_variation = cart_item.variation.all()
-            print("got variation")
             orderproduct = OrderProduct.objects.get(id=orderproduct.id)
-            print("got orderproduct")
             orderproduct.variations.set(product_variation)
             orderproduct.save()
 
@@ -58,10 +50,42 @@ def payment_success(request):
             product.stock -= item.quantity
             product.save()
 
-        return HttpResponse("payment successfull")
+        # Delete CartItem
+        CartItem.objects.filter(cart=cart).delete()
+
+        # success Page
+        order = Order.objects.get(
+            user=request.user, order_number=razorpay_order_id)
+        order_products = OrderProduct.objects.filter(order_id=order.id)
+        subtotal = 0
+        for i in order_products:
+            subtotal += i.product_price * i.quantity
+
+        context = {
+            'order': order,
+            'order_products': order_products,
+            'transaction_id': razorpay_payment_id,
+            'sub_total': subtotal,
+        }
+
+        return render(request, 'orders/success.html')
     except Exception as E:
         print(E)
-        return HttpResponse("Error Occured during payment")
+        order = Order.objects.get(
+            user=request.user, order_number=razorpay_order_id)
+        print(order)
+        order_products = OrderProduct.objects.filter(order_id=order.id)
+        subtotal = 0
+        for i in order_products:
+            subtotal += i.product_price * i.quantity
+
+        context = {
+            'order': order,
+            'order_products': order_products,
+            'transaction_id': razorpay_payment_id,
+            'sub_total': subtotal,
+        }
+        return render(request, 'orders/success.html', context)
 
 
 def payment(request):
